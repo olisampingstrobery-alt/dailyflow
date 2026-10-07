@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DailyFlow - Kelola Aktivitas Harianmu</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'Inter', 'sans-serif'] },
+                    colors: {
+                        primary: '#0EA5E9',
+                        primaryDark: '#0284C7',
+                        ink: '#0F172A',
+                        muted: '#64748B',
+                        canvas: '#F0F9FF',
+                    },
+                    boxShadow: {
+                        soft: '0 1px 2px rgba(15,23,42,.04), 0 8px 24px -12px rgba(15,23,42,.12)',
+                        lift: '0 12px 32px -12px rgba(14,165,233,.35)',
+                        card: '0 1px 3px rgba(15,23,42,.06), 0 4px 16px -4px rgba(15,23,42,.08)',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body { background:#F0F9FF; color:#0F172A; overflow-x:hidden; -webkit-font-smoothing:antialiased; }
+        ::-webkit-scrollbar{width:8px;height:8px}
+        ::-webkit-scrollbar-track{background:transparent}
+        ::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:99px}
+        ::-webkit-scrollbar-thumb:hover{background:#94A3B8}
+
+        .bg-decor{
+            background:
+                radial-gradient(600px 280px at 15% -5%, rgba(14,165,233,.18), transparent 60%),
+                radial-gradient(700px 320px at 95% 0%, rgba(56,189,248,.18), transparent 60%),
+                radial-gradient(600px 400px at 50% 110%, rgba(125,211,252,.18), transparent 60%);
+        }
+        .fade-in{animation:fadeIn .3s ease both}
+        .slide-in{animation:slideIn .35s cubic-bezier(.21,1.02,.73,1) both}
+        @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+        @keyframes slideIn{from{transform:translateY(12px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+        .glass-overlay{background:rgba(15,23,42,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+        .nav-link{position:relative}
+        .nav-link.active{background:linear-gradient(135deg,#38BDF8,#0EA5E9);color:#fff!important;box-shadow:0 8px 20px -8px rgba(14,165,233,.6)}
+        .nav-link.active .nav-count{background:rgba(255,255,255,.22);color:#fff}
+        .card-hover{transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease}
+        .card-hover:hover{transform:translateY(-3px);box-shadow:0 12px 32px -12px rgba(15,23,42,.18);border-color:#BAE6FD}
+        .icon-btn{transition:all .15s ease}
+        .icon-btn:active{transform:scale(.92)}
+        .line-clamp-2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+        .check-btn{width:28px;height:28px;border-radius:99px;border:2px solid #CBD5E1;display:flex;align-items:center;justify-content:center;transition:all .2s ease;background:#fff;flex-shrink:0}
+        .check-btn:hover{border-color:#22C55E;background:#F0FDF4;transform:scale(1.08)}
+        .check-btn.done{background:#22C55E;border-color:#22C55E;color:#fff}
+        .check-btn.done:hover{background:#16A34A}
+
+        input,select,textarea{transition:border-color .15s ease, box-shadow .15s ease}
+        input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px rgba(14,165,233,.18)!important}
+
+        @media (max-width:1023px){
+            .sidebar{transform:translateX(-105%);transition:transform .32s cubic-bezier(.21,1.02,.73,1);z-index:50}
+            .sidebar.open{transform:translateX(0)}
+        }
+    </style>
+</head>
+<body class="flex h-screen w-full bg-decor font-sans">
+
+    <div id="sidebarOverlay" class="fixed inset-0 glass-overlay hidden z-40 lg:hidden" onclick="toggleSidebar()"></div>
+
+    <!-- ============ SIDEBAR ============ -->
+    <aside id="sidebar" class="sidebar fixed lg:static w-[280px] h-full bg-white/95 backdrop-blur border-r border-slate-200/80 flex flex-col shrink-0 shadow-soft">
+        <div class="p-5 pb-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-sky-400 via-sky-500 to-blue-500 text-white flex items-center justify-center text-2xl shadow-lift">
+                    <i class="ph-fill ph-waves"></i>
+                </div>
+                <div>
+                    <p class="font-extrabold text-[19px] leading-none tracking-tight">DailyFlow</p>
+                    <p class="text-[12px] text-slate-500 font-medium mt-1">Fokus • Rapi • Selesai</p>
+                </div>
+            </div>
+            <button class="lg:hidden w-9 h-9 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center" onclick="toggleSidebar()">
+                <i class="ph ph-x text-lg"></i>
+            </button>
+        </div>
+
+        <nav class="flex-1 px-4 py-2 space-y-1 overflow-y-auto">
+            <p class="px-3 pt-2 pb-2 text-[11px] font-bold text-slate-400 uppercase tracking-[.12em]">Menu</p>
+            <a href="#" onclick="setQuickFilter('Semua');return false;" data-nav="Semua" class="nav-link active flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-[14px] text-slate-600 hover:bg-slate-100 transition-all">
+                <span class="w-9 h-9 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-lg shrink-0"><i class="ph-fill ph-squares-four"></i></span>
+                <span class="flex-1">Dashboard</span>
+                <span id="navCountSemua" class="nav-count text-[12px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">0</span>
+            </a>
+            <a href="#" onclick="setQuickFilter('Belum Selesai');return false;" data-nav="Belum Selesai" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-[14px] text-slate-600 hover:bg-slate-100 transition-all">
+                <span class="w-9 h-9 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg shrink-0"><i class="ph-fill ph-clock"></i></span>
+                <span class="flex-1">Belum Selesai</span>
+                <span id="navCountPending" class="nav-count text-[12px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">0</span>
+            </a>
+            <a href="#" onclick="setQuickFilter('Selesai');return false;" data-nav="Selesai" class="nav-link flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-semibold text-[14px] text-slate-600 hover:bg-slate-100 transition-all">
+                <span class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg shrink-0"><i class="ph-fill ph-check-circle"></i></span>
+                <span class="flex-1">Selesai</span>
+                <span id="navCountDone" class="nav-count text-[12px] font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">0</span>
+            </a>
+
+            <p class="px-3 pt-5 pb-2 text-[11px] font-bold text-slate-400 uppercase tracking-[.12em]">Kategori</p>
+            <div id="categoryNav" class="space-y-1"></div>
+
+            <div class="mt-5 mx-1 p-4 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 text-white relative overflow-hidden">
+                <div class="absolute -right-6 -top-6 w-28 h-28 rounded-full bg-white/10"></div>
+                <div class="absolute -right-2 top-8 w-16 h-16 rounded-full bg-white/10"></div>
+                <p class="font-bold text-[14px] flex items-center gap-2"><i class="ph-fill ph-lightning"></i> Tips Fokus</p>
+                <p class="text-[13px] text-sky-100 mt-1 leading-relaxed">Kerjakan 1 tugas prioritas tinggi dulu hari ini. Small wins matters.</p>
+                <div class="mt-3 bg-white/15 rounded-xl h-1.5 overflow-hidden"><div id="tipProgress" class="h-full bg-white rounded-full transition-all duration-700" style="width:0%"></div></div>
+            </div>
+        </nav>
+
+        <div class="p-4">
+            <div class="flex items-center gap-3 p-3 rounded-2xl bg-slate-50 border border-slate-200/70">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white font-extrabold flex items-center justify-center">K</div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[13.5px] font-bold truncate">Kamu Hebat!</p>
+                    <p class="text-[12px] text-slate-500 truncate">Tetap konsisten ya ✨</p>
+                </div>
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-100"></span>
+            </div>
+            <p class="text-center text-[12px] text-slate-400 mt-3 font-medium">&copy; 2026 DailyFlow • v2.0</p>
+        </div>
+    </aside>
+
+    <!-- ============ MAIN ============ -->
+    <main class="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
+        
+        <header class="bg-white/85 backdrop-blur border-b border-slate-200/80 px-4 sm:px-6 lg:px-8 py-4 z-10">
+            <div class="flex items-center gap-3">
+                <button class="lg:hidden w-10 h-10 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center" onclick="toggleSidebar()">
+                    <i class="ph ph-list text-xl"></i>
+                </button>
+                <div class="flex-1 min-w-0">
+                    <h1 class="text-[18px] sm:text-[20px] font-extrabold tracking-tight leading-tight">Halo, selamat produktif! 👋</h1>
+                    <p id="currentDate" class="text-[13px] text-slate-500 font-medium capitalize truncate"></p>
+                </div>
+                <div class="relative hidden md:block w-72">
+                    <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+                    <input type="text" id="searchInput" placeholder="Cari aktivitas atau catatan..." class="w-full pl-10 pr-10 py-2.5 bg-slate-100/80 border border-transparent rounded-xl focus:bg-white focus:border-sky-400 focus:outline-none text-[13.5px] font-medium placeholder:text-slate-400">
+                    <kbd class="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] font-bold text-slate-400 bg-white border border-slate-200 rounded-md px-1.5 py-0.5 hidden lg:block">/</kbd>
+                </div>
+                <button onclick="openFormModal()" class="bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white pl-4 pr-4 sm:pl-5 sm:pr-5 py-2.5 rounded-xl font-bold text-[13.5px] flex items-center gap-2 transition-all shadow-lift hover:shadow-lg active:scale-95 shrink-0">
+                    <i class="ph-bold ph-plus text-base"></i><span class="hidden sm:inline">Tambah Aktivitas</span><span class="sm:hidden">Tambah</span>
+                </button>
+            </div>
+            <div class="relative md:hidden mt-3">
+                <i class="ph ph-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+                <input type="text" id="searchInputMobile" placeholder="Cari aktivitas..." class="w-full pl-10 pr-4 py-2.5 bg-slate-100/80 border border-transparent rounded-xl focus:bg-white focus:border-sky-400 focus:outline-none text-[13.5px] font-medium">
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 py-6 max-w-[1200px] w-full mx-auto">
+            
+            <!-- STATS -->
+            <div class="grid grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 mb-5">
+                <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/70 shadow-card slide-in flex items-center gap-3.5" style="animation-delay:.05s">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-500 text-white flex items-center justify-center text-[22px] shadow-lift shrink-0"><i class="ph-fill ph-clipboard-text"></i></div>
+                    <div class="min-w-0"><p class="text-[12px] text-slate-500 font-semibold">Total Aktivitas</p><h3 id="statTotal" class="text-[26px] font-extrabold leading-none mt-0.5">0</h3></div>
+                </div>
+                <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/70 shadow-card slide-in flex items-center gap-3.5" style="animation-delay:.12s">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center text-[22px] shrink-0 shadow-[0_8px_20px_-8px_rgba(249,115,22,.6)]"><i class="ph-fill ph-hourglass-medium"></i></div>
+                    <div class="min-w-0"><p class="text-[12px] text-slate-500 font-semibold">Belum Selesai</p><h3 id="statPending" class="text-[26px] font-extrabold leading-none mt-0.5">0</h3></div>
+                </div>
+                <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200/70 shadow-card slide-in flex items-center gap-3.5" style="animation-delay:.19s">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center text-[22px] shrink-0 shadow-[0_8px_20px_-8px_rgba(16,185,129,.6)]"><i class="ph-fill ph-check-circle"></i></div>
+                    <div class="min-w-0"><p class="text-[12px] text-slate-500 font-semibold">Selesai</p><h3 id="statCompleted" class="text-[26px] font-extrabold leading-none mt-0.5">0</h3></div>
+                </div>
+                <div class="bg-ink text-white p-4 sm:p-5 rounded-2xl shadow-card slide-in relative overflow-hidden col-span-2 xl:col-span-1" style="animation-delay:.26s;background:#0F172A">
+                    <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-sky-300/50 blur-2xl"></div>
+                    <div class="absolute -right-2 bottom-0 w-20 h-20 rounded-full bg-sky-300/40 blur-xl"></div>
+                    <div class="flex items-center justify-between relative">
+                        <div><p class="text-[12px] text-slate-400 font-semibold flex items-center gap-1.5"><i class="ph-fill ph-trend-up text-emerald-400"></i> Progress</p>
+                        <h3 id="statProgressText" class="text-[26px] font-extrabold leading-none mt-1">0%</h3></div>
+                        <div class="w-12 h-12 rounded-full grid place-items-center text-[12px] font-extrabold relative shrink-0" style="background:conic-gradient(#22C55E var(--p,0%), rgba(255,255,255,.12) 0)">
+                            <span id="ringLabel" class="w-9 h-9 rounded-full grid place-items-center text-[10px]" style="background:#0F172A">0%</span>
+                        </div>
+                    </div>
+                    <div class="w-full bg-white/10 rounded-full h-2 mt-3 relative overflow-hidden">
+                        <div id="statProgressBar" class="h-2 rounded-full transition-all duration-700 bg-gradient-to-r from-emerald-400 to-teal-300" style="width:0%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TOOLBAR -->
+            <div class="bg-white p-3 sm:p-3.5 rounded-2xl border border-slate-200/70 shadow-card mb-5 flex flex-col xl:flex-row gap-3 xl:items-center xl:justify-between sticky top-0 z-[5]">
+                <div class="flex items-center gap-2 overflow-x-auto pb-1 xl:pb-0" id="pillFilters">
+                    <button data-cat="Semua" class="pill shrink-0 px-4 py-2 rounded-xl text-[13px] font-bold bg-ink text-white transition-all">Semua</button>
+                    <button data-cat="Sekolah" class="pill shrink-0 px-4 py-2 rounded-xl text-[13px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all">📚 Sekolah</button>
+                    <button data-cat="PKL" class="pill shrink-0 px-4 py-2 rounded-xl text-[13px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all">💼 PKL</button>
+                    <button data-cat="Project" class="pill shrink-0 px-4 py-2 rounded-xl text-[13px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all">💻 Project</button>
+                    <button data-cat="Pribadi" class="pill shrink-0 px-4 py-2 rounded-xl text-[13px] font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all">🏠 Pribadi</button>
+                </div>
+                <div class="flex gap-2.5">
+                    <div class="relative flex-1 xl:w-44">
+                        <i class="ph ph-funnel absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <select id="filterKategori" class="hidden"></select>
+                        <select id="filterStatus" class="w-full appearance-none pl-9 pr-8 py-2.5 bg-slate-100/80 border border-transparent rounded-xl text-[13px] font-semibold text-slate-700 focus:bg-white focus:border-sky-400 focus:outline-none cursor-pointer">
+                            <option value="Semua">Semua Status</option>
+                            <option value="Belum Selesai">Belum Selesai</option>
+                            <option value="Selesai">Selesai</option>
+                        </select>
+                        <i class="ph ph-caret-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                    </div>
+                    <div class="relative flex-1 xl:w-44">
+                        <i class="ph ph-flag absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <select id="filterPrioritas" class="w-full appearance-none pl-9 pr-8 py-2.5 bg-slate-100/80 border border-transparent rounded-xl text-[13px] font-semibold text-slate-700 focus:bg-white focus:border-sky-400 focus:outline-none cursor-pointer">
+                            <option value="Semua">Semua Prioritas</option>
+                            <option value="Tinggi">Tinggi</option>
+                            <option value="Sedang">Sedang</option>
+                            <option value="Rendah">Rendah</option>
+                        </select>
+                        <i class="ph ph-caret-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs pointer-events-none"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- LIST HEADER -->
+            <div class="flex items-center justify-between mb-4 px-1">
+                <h2 class="text-[16px] font-extrabold tracking-tight flex items-center gap-2">
+                    <span class="w-8 h-8 rounded-xl bg-sky-500 text-white flex items-center justify-center"><i class="ph-fill ph-list-checks"></i></span>
+                    Daftar Aktivitas <span id="resultCount" class="text-[12px] font-bold bg-sky-50 text-sky-700 border border-sky-100 px-2.5 py-1 rounded-full">0</span>
+                </h2>
+                <div class="flex items-center gap-1 bg-white border border-slate-200 rounded-xl p-1">
+                    <button id="viewGrid" onclick="setView('grid')" class="w-8 h-8 rounded-lg bg-ink text-white flex items-center justify-center transition-all" title="Grid"><i class="ph-fill ph-grid-four"></i></button>
+                    <button id="viewList" onclick="setView('list')" class="w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 flex items-center justify-center transition-all" title="List"><i class="ph ph-rows"></i></button>
+                </div>
+            </div>
+                
+            <div id="activityContainer" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4"></div>
+
+            <div id="emptyState" class="hidden flex-col items-center justify-center py-16 text-center fade-in bg-white rounded-3xl border border-dashed border-slate-300 mt-2">
+                <div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-sky-50 to-blue-100 border border-sky-100 flex items-center justify-center text-4xl mb-4">🪴</div>
+                <h3 class="text-[17px] font-extrabold">Belum ada aktivitas</h3>
+                <p class="text-[13.5px] text-slate-500 mt-1 mb-5 max-w-sm leading-relaxed">Mulai hari produktifmu dengan menambahkan aktivitas baru atau ubah filter pencarianmu.</p>
+                <button onclick="openFormModal()" class="bg-ink text-white px-5 py-2.5 rounded-xl text-[13.5px] font-bold flex items-center gap-2 hover:bg-slate-800 active:scale-95 transition-all">
+                    <i class="ph-bold ph-plus"></i> Tambah Sekarang
+                </button>
+            </div>
+            <div class="h-10"></div>
+        </div>
+    </main>
+
+    <!-- MODAL FORM -->
+    <div id="formModal" class="fixed inset-0 glass-overlay hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-[480px] overflow-hidden transform scale-95 opacity-0 transition-all duration-200 max-h-[92vh] flex flex-col" id="formModalContent">
+            <div class="px-6 py-5 flex items-center gap-3.5 bg-gradient-to-r from-sky-400 to-blue-500 text-white shrink-0">
+                <div class="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center text-xl"><i class="ph-fill ph-note-pencil" id="modalIcon"></i></div>
+                <div class="flex-1"><h3 class="text-[16px] font-extrabold leading-tight" id="modalTitle">Tambah Aktivitas</h3><p class="text-[12.5px] text-sky-100">Isi detail aktivitasmu di bawah</p></div>
+                <button onclick="closeFormModal()" class="w-9 h-9 rounded-xl bg-white/15 hover:bg-white/25 flex items-center justify-center transition-colors"><i class="ph ph-x text-lg"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto">
+                <form id="activityForm" class="space-y-4">
+                    <input type="hidden" id="formId">
+                    <div>
+                        <label class="block text-[13px] font-bold mb-1.5">Nama Aktivitas <span class="text-rose-500">*</span></label>
+                        <input type="text" id="formNama" required placeholder="Contoh: Membuat laporan PKL Bab 3" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-sky-400 focus:outline-none text-[14px] font-medium placeholder:text-slate-400 placeholder:font-normal">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[13px] font-bold mb-1.5">Kategori</label>
+                            <select id="formKategori" required class="w-full px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-sky-400 focus:outline-none text-[14px] font-medium cursor-pointer">
+                                <option value="Sekolah">📚 Sekolah</option>
+                                <option value="PKL">💼 PKL</option>
+                                <option value="Project">💻 Project</option>
+                                <option value="Pribadi">🏠 Pribadi</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[13px] font-bold mb-1.5">Prioritas</label>
+                            <select id="formPrioritas" required class="w-full px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-sky-400 focus:outline-none text-[14px] font-medium cursor-pointer">
+                                <option value="Tinggi">🔴 Tinggi</option>
+                                <option value="Sedang" selected>🟡 Sedang</option>
+                                <option value="Rendah">🟢 Rendah</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-[13px] font-bold mb-1.5">Deadline <span class="text-rose-500">*</span></label>
+                            <input type="date" id="formDeadline" required class="w-full px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-sky-400 focus:outline-none text-[14px] font-medium">
+                        </div>
+                        <div>
+                            <label class="block text-[13px] font-bold mb-1.5">Status</label>
+                            <select id="formStatus" required class="w-full px-3.5 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-sky-400 focus:outline-none text-[14px] font-medium cursor-pointer">
+                                <option value="Belum Selesai">○ Belum Selesai</option>
+                                <option value="Selesai">✓ Selesai</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-[13px] font-bold mb-1.5">Catatan <span class="text-slate-400 font-medium">(opsional)</span></label>
+                        <textarea id="formCatatan" rows="3" placeholder="Tambahkan detail, link, atau langkah pengerjaan..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-sky-400 focus:outline-none text-[14px] resize-none placeholder:text-slate-400"></textarea>
+                    </div>
+                    <div class="pt-2 flex gap-3">
+                        <button type="button" onclick="closeFormModal()" class="flex-1 px-4 py-3 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl text-[14px] font-bold transition-colors">Batal</button>
+                        <button type="submit" class="flex-[2] px-4 py-3 bg-gradient-to-r from-sky-400 to-blue-500 hover:from-sky-500 hover:to-blue-600 text-white rounded-xl text-[14px] font-bold transition-all shadow-lift flex items-center justify-center gap-2 active:scale-[.98]">
+                            <i class="ph-bold ph-floppy-disk"></i> Simpan Aktivitas
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DELETE -->
+    <div id="deleteModal" class="fixed inset-0 glass-overlay hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden transform scale-95 opacity-0 transition-all duration-200 text-center p-7" id="deleteModalContent">
+            <div class="w-[72px] h-[72px] bg-gradient-to-br from-rose-50 to-red-100 border border-red-100 text-rose-600 rounded-3xl flex items-center justify-center text-4xl mx-auto mb-4"><i class="ph-fill ph-trash"></i></div>
+            <h3 class="text-[17px] font-extrabold">Hapus Aktivitas?</h3>
+            <p class="text-[13.5px] text-slate-500 mt-1.5 mb-6 leading-relaxed">Yakin ingin menghapus<br><strong id="deleteItemName" class="text-slate-800"></strong>?<br>Tindakan ini tidak dapat dibatalkan.</p>
+            <div class="flex gap-3">
+                <button onclick="closeDeleteModal()" class="flex-1 px-4 py-2.5 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl text-[14px] font-bold transition-colors">Batal</button>
+                <button onclick="confirmDelete()" class="flex-1 px-4 py-2.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white rounded-xl text-[14px] font-bold transition-all shadow-lg active:scale-95">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 sm:left-auto sm:translate-x-0 sm:right-6 transform translate-y-24 opacity-0 transition-all duration-300 z-[60] flex items-center gap-3 pl-3 pr-5 py-2.5 rounded-2xl shadow-2xl text-white font-semibold text-[13.5px] bg-ink" style="background:#0F172A">
+        <span id="toastIconWrap" class="w-9 h-9 rounded-xl flex items-center justify-center text-lg bg-emerald-500"><i id="toastIcon" class="ph-fill ph-check-circle"></i></span>
+        <span id="toastMessage">Message</span>
+    </div>
+
+    <script>
+        const CATS = [
+            { name:'Sekolah', emoji:'📚', bg:'bg-sky-50', tx:'text-sky-700', bd:'border-sky-100', dot:'bg-sky-500' },
+            { name:'PKL', emoji:'💼', bg:'bg-amber-50', tx:'text-amber-700', bd:'border-amber-100', dot:'bg-amber-500' },
+            { name:'Project', emoji:'💻', bg:'bg-violet-50', tx:'text-violet-700', bd:'border-violet-100', dot:'bg-violet-500' },
+            { name:'Pribadi', emoji:'🏠', bg:'bg-emerald-50', tx:'text-emerald-700', bd:'border-emerald-100', dot:'bg-emerald-500' },
+        ];
+        const catMeta = n => CATS.find(c=>c.name===n) || { name:n, emoji:'📌', bg:'bg-slate-100', tx:'text-slate-600', bd:'border-slate-200', dot:'bg-slate-400' };
+        const PRIORITY = {
+            'Tinggi': { pill:'bg-rose-50 text-rose-700 border-rose-200', dot:'bg-rose-500', bar:'from-rose-500 to-red-500', icon:'ph-fill ph-arrow-circle-up' },
+            'Sedang': { pill:'bg-amber-50 text-amber-700 border-amber-200', dot:'bg-amber-500', bar:'from-amber-400 to-orange-500', icon:'ph-fill ph-minus-circle' },
+            'Rendah': { pill:'bg-emerald-50 text-emerald-700 border-emerald-200', dot:'bg-emerald-500', bar:'from-emerald-400 to-teal-500', icon:'ph-fill ph-arrow-circle-down' },
+        };
+
+        const todayStr = () => new Date().toISOString().split('T')[0];
+        const seedDate = (offset=0) => new Date(Date.now()+offset*86400000).toISOString().split('T')[0];
+
+        let activities = load() || [
+            { id:'A'+Date.now()+'1', nama:"Membuat laporan PKL", kategori:"PKL", prioritas:"Tinggi", deadline:seedDate(0), status:"Belum Selesai", catatan:"Menyelesaikan BAB 3 dan mengumpulkan ke pembimbing." },
+            { id:'A'+Date.now()+'2', nama:"Olahraga Pagi", kategori:"Pribadi", prioritas:"Rendah", deadline:seedDate(0), status:"Selesai", catatan:"Lari keliling komplek 30 menit." },
+            { id:'A'+Date.now()+'3', nama:"Coding UI Dashboard", kategori:"Project", prioritas:"Sedang", deadline:seedDate(1), status:"Belum Selesai", catatan:"Rapikan layout dengan Tailwind + validasi form." }
+        ];
+
+        let deleteTargetId = null;
+        let currentView = 'grid';
+        let activeCat = 'Semua';
+
+        const activityContainer = document.getElementById('activityContainer');
+        const emptyState = document.getElementById('emptyState');
+        const formModal = document.getElementById('formModal');
+        const formModalContent = document.getElementById('formModalContent');
+        const activityForm = document.getElementById('activityForm');
+        const deleteModal = document.getElementById('deleteModal');
+        const deleteModalContent = document.getElementById('deleteModalContent');
+        const toast = document.getElementById('toast');
+        const searchInput = document.getElementById('searchInput');
+        const searchMobile = document.getElementById('searchInputMobile');
+        const filterKategori = document.getElementById('filterKategori');
+        const filterStatus = document.getElementById('filterStatus');
+        const filterPrioritas = document.getElementById('filterPrioritas');
+
+        function load(){ try{ const r = localStorage.getItem('dailyflow_v2'); return r ? JSON.parse(r) : null; }catch(e){ return null; } }
+        function save(){ try{ localStorage.setItem('dailyflow_v2', JSON.stringify(activities)); }catch(e){} }
+        function esc(s){ return String(s??'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+        function setDateHeader(){
+            const d = new Date().toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+            document.getElementById('currentDate').textContent = d;
+        }
+        function formatDate(ds){
+            try{ return new Date(ds+'T00:00:00').toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'}); }catch(e){ return ds; }
+        }
+        function deadlineInfo(ds, status){
+            if(status==='Selesai') return { label:formatDate(ds), cls:'bg-slate-100 text-slate-500 border-slate-200', icon:'ph-check' };
+            const t = todayStr();
+            if(ds < t) return { label:'Terlambat • '+formatDate(ds), cls:'bg-rose-50 text-rose-700 border-rose-200', icon:'ph-fill ph-warning-circle' };
+            if(ds === t) return { label:'Hari ini • '+formatDate(ds), cls:'bg-amber-50 text-amber-700 border-amber-200', icon:'ph-fill ph-clock' };
+            const tm = seedDate(1);
+            if(ds === tm) return { label:'Besok • '+formatDate(ds), cls:'bg-sky-50 text-sky-700 border-sky-200', icon:'ph ph-calendar-blank' };
+            return { label:formatDate(ds), cls:'bg-slate-100 text-slate-600 border-slate-200', icon:'ph ph-calendar-blank' };
+        }
+
+        function showToast(message, type='success'){
+            document.getElementById('toastMessage').textContent = message;
+            const wrap = document.getElementById('toastIconWrap');
+            const icon = document.getElementById('toastIcon');
+            if(type==='success'){ wrap.className='w-9 h-9 rounded-xl flex items-center justify-center text-lg bg-emerald-500'; icon.className='ph-fill ph-check-circle'; }
+            else { wrap.className='w-9 h-9 rounded-xl flex items-center justify-center text-lg bg-rose-500'; icon.className='ph-fill ph-trash'; }
+            toast.classList.remove('translate-y-24','opacity-0');
+            clearTimeout(window._toastT);
+            window._toastT = setTimeout(()=>toast.classList.add('translate-y-24','opacity-0'), 2800);
+        }
+
+        function toggleSidebar(){
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebarOverlay').classList.toggle('hidden');
+        }
+
+        function setView(v){
+            currentView = v;
+            const g = document.getElementById('viewGrid'), l = document.getElementById('viewList');
+            const on = 'w-8 h-8 rounded-lg bg-ink text-white flex items-center justify-center transition-all';
+            const off = 'w-8 h-8 rounded-lg text-slate-400 hover:text-slate-700 flex items-center justify-center transition-all';
+            g.className = v==='grid' ? on : off; l.className = v==='list' ? on : off;
+            renderActivities();
+        }
+
+        function updateStatistics(){
+            const total = activities.length;
+            const completed = activities.filter(a=>a.status==='Selesai').length;
+            const pending = total - completed;
+            const progress = total===0 ? 0 : Math.round(completed/total*100);
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statPending').textContent = pending;
+            document.getElementById('statCompleted').textContent = completed;
+            document.getElementById('statProgressText').textContent = progress+'%';
+            document.getElementById('ringLabel').textContent = progress+'%';
+            document.querySelector('[style*="conic-gradient"]')?.style.setProperty('--p', progress+'%');
+            const bar = document.getElementById('statProgressBar');
+            bar.style.width = progress+'%';
+            document.getElementById('tipProgress').style.width = progress+'%';
+            document.getElementById('navCountSemua').textContent = total;
+            document.getElementById('navCountPending').textContent = pending;
+            document.getElementById('navCountDone').textContent = completed;
+            buildCategoryNav();
+        }
+
+        function buildCategoryNav(){
+            const box = document.getElementById('categoryNav');
+            box.innerHTML = CATS.map(c=>{
+                const n = activities.filter(a=>a.kategori===c.name && a.status!=='Selesai').length;
+                const active = activeCat===c.name ? 'background:#0F172A;color:#fff' : '';
+                return `<button onclick="setCategory('${c.name}')" style="${active}" class="w-full flex items-center gap-3 px-3.5 py-2 rounded-xl font-semibold text-[13.5px] ${activeCat===c.name?'':'text-slate-600 hover:bg-slate-100'} transition-all">
+                    <span class="text-lg">${c.emoji}</span><span class="flex-1 text-left">${c.name}</span>
+                    <span class="text-[11px] font-bold ${activeCat===c.name?'bg-white/20 text-white':'bg-slate-100 text-slate-500'} px-2 py-0.5 rounded-full">${n}</span>
+                </button>`;
+            }).join('');
+            document.querySelectorAll('#pillFilters .pill').forEach(p=>{
+                const on = p.dataset.cat===activeCat;
+                p.className = 'pill shrink-0 px-4 py-2 rounded-xl text-[13px] font-bold transition-all ' + (on ? 'bg-ink text-white shadow-soft' : 'bg-slate-100 text-slate-600 hover:bg-slate-200');
+            });
+        }
+
+        function setCategory(c){
+            activeCat = c;
+            syncSearch(''); renderActivities();
+            if(window.innerWidth<1024){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.add('hidden'); }
+        }
+
+        function syncSearch(v){
+            if(searchInput) searchInput.value = v;
+            if(searchMobile) searchMobile.value = v;
+        }
+        function currentSearch(){ return ((searchInput?.value||'') + ' ' + (searchMobile?.value||'')).toLowerCase(); }
+
+        function getFiltered(){
+            const term = currentSearch().trim();
+            const statF = filterStatus.value, prioF = filterPrioritas.value;
+            let f = activities.filter(a=>{
+                const s = (a.nama+' '+(a.catatan||'')).toLowerCase().includes(term);
+                const c = activeCat==='Semua' || a.kategori===activeCat;
+                const st = statF==='Semua' || a.status===statF;
+                const pr = prioF==='Semua' || a.prioritas===prioF;
+                return s&&c&&st&&pr;
+            });
+            f.sort((a,b)=>{
+                if(a.status!==b.status) return a.status==='Selesai'?1:-1;
+                if(a.deadline!==b.deadline) return new Date(a.deadline)-new Date(b.deadline);
+                const w={Tinggi:0,Sedang:1,Rendah:2}; return (w[a.prioritas]??9)-(w[b.prioritas]??9);
+            });
+            return f;
+        }
+
+        function renderActivities(){
+            const filtered = getFiltered();
+            document.getElementById('resultCount').textContent = filtered.length + ' tugas';
+            activityContainer.className = currentView==='grid'
+                ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4'
+                : 'flex flex-col gap-3';
+
+            if(filtered.length===0){
+                activityContainer.innerHTML='';
+                emptyState.classList.remove('hidden'); emptyState.classList.add('flex');
+            } else {
+                emptyState.classList.add('hidden'); emptyState.classList.remove('flex');
+                activityContainer.innerHTML = filtered.map((act,i)=>{
+                    const done = act.status==='Selesai';
+                    const cm = catMeta(act.kategori);
+                    const pm = PRIORITY[act.prioritas] || PRIORITY['Sedang'];
+                    const dl = deadlineInfo(act.deadline, act.status);
+                    const list = currentView==='list';
+                    return `
+                    <div class="bg-white rounded-2xl border ${done?'border-slate-200 opacity-80':'border-slate-200/80'} shadow-card card-hover overflow-hidden slide-in flex ${list?'flex-row items-center gap-3 p-3.5':'flex-col'}" style="animation-delay:${Math.min(i*0.05,0.4)}s">
+                        <div class="h-1.5 w-full bg-gradient-to-r ${done?'from-slate-200 to-slate-200':pm.bar} ${list?'hidden':''}"></div>
+                        <div class="${list?'flex items-center gap-3.5 flex-1 min-w-0':'p-5 flex flex-col flex-1'} w-full">
+                            <div class="flex items-start gap-3 ${list?'flex-1 min-w-0':''}">
+                                <button onclick="toggleStatus('${act.id}')" title="${done?'Kembalikan':'Tandai selesai'}" class="check-btn ${done?'done':''} ${list?'mt-0.5':'mt-0.5'}">
+                                    ${done?'<i class="ph-bold ph-check text-sm"></i>':''}
+                                </button>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="font-bold text-[15px] leading-snug ${done?'line-through text-slate-400':'text-slate-900'}">${esc(act.nama)}</h3>
+                                    <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                                        <span class="inline-flex items-center gap-1.5 text-[11.5px] font-bold px-2.5 py-1 rounded-lg border ${cm.bg} ${cm.tx} ${cm.bd}"><span class="w-1.5 h-1.5 rounded-full ${cm.dot}"></span>${esc(act.kategori)}</span>
+                                        <span class="inline-flex items-center gap-1 text-[11.5px] font-bold px-2.5 py-1 rounded-lg border ${pm.pill}"><i class="${pm.icon}"></i>${esc(act.prioritas)}</span>
+                                        ${done?'<span class="inline-flex items-center gap-1 text-[11.5px] font-bold px-2.5 py-1 rounded-lg bg-emerald-500 text-white"><i class="ph-fill ph-check-circle"></i>Selesai</span>':''}
+                                    </div>
+                                </div>
+                            </div>
+                            ${act.catatan?`<p class="text-[13px] ${done?'text-slate-400':'text-slate-500'} leading-relaxed mt-3 ${list?'hidden xl:block':''} line-clamp-2 bg-slate-50 border border-slate-100 rounded-xl px-3 py-2.5">“${esc(act.catatan)}”</p>`:''}
+                            <div class="flex items-center justify-between gap-2 mt-4 ${list?'xl:mt-0 xl:ml-4 mt-3':''} ${list?'flex-wrap sm:flex-nowrap':''}">
+                                <span class="inline-flex items-center gap-1.5 text-[12px] font-bold px-2.5 py-1.5 rounded-lg border ${dl.cls}"><i class="${dl.icon}"></i>${esc(dl.label)}</span>
+                                <div class="flex items-center gap-1.5">
+                                    <button onclick="editActivity('${act.id}')" title="Edit" class="icon-btn w-9 h-9 rounded-xl text-sky-600 bg-sky-50 hover:bg-sky-500 hover:text-white flex items-center justify-center"><i class="ph ph-pencil-simple text-[17px]"></i></button>
+                                    <button onclick="openDeleteModal('${act.id}')" title="Hapus" class="icon-btn w-9 h-9 rounded-xl text-rose-600 bg-rose-50 hover:bg-rose-600 hover:text-white flex items-center justify-center"><i class="ph ph-trash text-[17px]"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+            updateStatistics();
+        }
+
+        function openFormModal(id=null){
+            formModal.classList.remove('hidden');
+            setTimeout(()=>{ formModalContent.classList.remove('scale-95','opacity-0'); },10);
+            if(id){
+                const act = activities.find(a=>a.id===id);
+                if(!act) return;
+                document.getElementById('modalTitle').textContent='Edit Aktivitas';
+                document.getElementById('formId').value=act.id;
+                document.getElementById('formNama').value=act.nama;
+                document.getElementById('formKategori').value=act.kategori;
+                document.getElementById('formPrioritas').value=act.prioritas;
+                document.getElementById('formDeadline').value=act.deadline;
+                document.getElementById('formStatus').value=act.status;
+                document.getElementById('formCatatan').value=act.catatan||'';
+            } else {
+                document.getElementById('modalTitle').textContent='Tambah Aktivitas';
+                activityForm.reset();
+                document.getElementById('formId').value='';
+                document.getElementById('formPrioritas').value='Sedang';
+                document.getElementById('formDeadline').value=todayStr();
+                document.getElementById('formStatus').value='Belum Selesai';
+                setTimeout(()=>document.getElementById('formNama').focus(),150);
+            }
+        }
+        function closeFormModal(){
+            formModalContent.classList.add('scale-95','opacity-0');
+            setTimeout(()=>formModal.classList.add('hidden'),180);
+        }
+        activityForm.addEventListener('submit', e=>{
+            e.preventDefault();
+            const id = document.getElementById('formId').value;
+            const data = {
+                nama: document.getElementById('formNama').value.trim(),
+                kategori: document.getElementById('formKategori').value,
+                prioritas: document.getElementById('formPrioritas').value,
+                deadline: document.getElementById('formDeadline').value,
+                status: document.getElementById('formStatus').value,
+                catatan: document.getElementById('formCatatan').value.trim()
+            };
+            if(!data.nama || !data.deadline) return;
+            if(id){
+                const ix = activities.findIndex(a=>a.id===id);
+                if(ix!==-1) activities[ix]={...activities[ix],...data};
+                showToast('Aktivitas berhasil diperbarui');
+            } else {
+                activities.unshift({ id:'A'+Date.now(), ...data });
+                showToast('Aktivitas baru ditambahkan 🎉');
+            }
+            save(); closeFormModal(); renderActivities();
+        });
+
+        function openDeleteModal(id){
+            deleteTargetId=id;
+            const act = activities.find(a=>a.id===id);
+            if(!act) return;
+            document.getElementById('deleteItemName').textContent='"'+act.nama+'"';
+            deleteModal.classList.remove('hidden');
+            setTimeout(()=>deleteModalContent.classList.remove('scale-95','opacity-0'),10);
+        }
+        function closeDeleteModal(){
+            deleteModalContent.classList.add('scale-95','opacity-0');
+            setTimeout(()=>{ deleteModal.classList.add('hidden'); deleteTargetId=null; },180);
+        }
+        function confirmDelete(){
+            if(!deleteTargetId) return;
+            activities = activities.filter(a=>a.id!==deleteTargetId);
+            save(); showToast('Aktivitas dihapus','danger');
+            closeDeleteModal(); renderActivities();
+        }
+
+        function toggleStatus(id){
+            const act = activities.find(a=>a.id===id);
+            if(!act) return;
+            act.status = act.status==='Selesai' ? 'Belum Selesai' : 'Selesai';
+            save();
+            showToast(act.status==='Selesai' ? `Hore! "${act.nama}" selesai 🎉` : `Status dikembalikan`, act.status==='Selesai'?'success':'danger');
+            renderActivities();
+        }
+        function editActivity(id){ openFormModal(id); }
+        function setQuickFilter(status){
+            filterStatus.value = status;
+            activeCat = 'Semua';
+            syncSearch('');
+            document.querySelectorAll('.nav-link').forEach(n=>n.classList.toggle('active', n.dataset.nav===status));
+            if(window.innerWidth<1024){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.add('hidden'); }
+            renderActivities();
+        }
+
+        searchInput?.addEventListener('input', renderActivities);
+        searchMobile?.addEventListener('input', ()=>{ if(searchInput) searchInput.value = searchMobile.value; renderActivities(); });
+        searchInput?.addEventListener('input', ()=>{ if(searchMobile) searchMobile.value = searchInput.value; });
+        filterStatus.addEventListener('change', renderActivities);
+        filterPrioritas.addEventListener('change', renderActivities);
+        document.querySelectorAll('#pillFilters .pill').forEach(p=>p.addEventListener('click', ()=>{ activeCat=p.dataset.cat; renderActivities(); }));
+        document.addEventListener('keydown', e=>{
+            if(e.key==='/' && document.activeElement.tagName!=='INPUT' && document.activeElement.tagName!=='TEXTAREA'){ e.preventDefault(); searchInput?.focus(); }
+            if(e.key==='Escape'){ if(!formModal.classList.contains('hidden')) closeFormModal(); if(!deleteModal.classList.contains('hidden')) closeDeleteModal(); }
+        });
+        formModal.addEventListener('click', e=>{ if(e.target===formModal) closeFormModal(); });
+        deleteModal.addEventListener('click', e=>{ if(e.target===deleteModal) closeDeleteModal(); });
+
+        window.onload = ()=>{
+            setDateHeader(); renderActivities();
+            window.addEventListener('resize', ()=>{
+                if(window.innerWidth>=1024){ document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.add('hidden'); }
+            });
+        };
+    </script>
+</body>
+</html>
